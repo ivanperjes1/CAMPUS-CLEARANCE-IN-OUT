@@ -1,38 +1,606 @@
-# AMA Campus Object Scanner & Approval System
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMA Campus Object Scanner & Approval System</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- QRCode Generator Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- HTML5 QR Code Scanner Library -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
 
-A complete, self-contained single-file HTML application designed for **AMA Computer College - Lipa Campus**, providing secure item registration, administrative approval, unique QR code generation/printing, and a real-time guard scanner module for campus entry and exit clearance.
+    <style>
+        :root {
+            --ama-red: #8B0000;
+            --ama-dark-red: #5c0000;
+            --ama-gold: #FFD700;
+        }
+        body {
+            background-color: #f4f6f9;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .navbar-brand {
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        .ama-logo-img {
+            width: 45px;
+            height: 45px;
+            object-fit: contain;
+            border-radius: 50%;
+            background-color: white;
+            padding: 2px;
+        }
+        .hero-banner {
+            background: linear-gradient(135deg, var(--ama-red), var(--ama-dark-red));
+            color: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 15px rgba(139, 0, 0, 0.2);
+        }
+        .card {
+            border: none;
+            border-radius: 0.75rem;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            transition: transform 0.2s;
+        }
+        .card:hover {
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+        }
+        .nav-pills .nav-link.active {
+            background-color: var(--ama-red);
+            color: white;
+        }
+        .nav-pills .nav-link {
+            color: var(--ama-red);
+            font-weight: 600;
+        }
+        .btn-ama {
+            background-color: var(--ama-red);
+            color: white;
+        }
+        .btn-ama:hover {
+            background-color: var(--ama-dark-red);
+            color: white;
+        }
+        .badge-status-pending { background-color: #ffc107; color: #000; }
+        .badge-status-approved { background-color: #198754; color: #fff; }
+        .badge-status-rejected { background-color: #dc3545; color: #fff; }
 
-## 🚀 Features
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #printableArea, #printableArea * {
+                visibility: visible;
+            }
+            #printableArea {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
 
-* **User Request Portal**: Students, faculty, staff, and visitors can submit item pass requests with detailed information (Name, Role, ID Number, Item Model, Category, and Purpose).
-* **Admin Approval Dashboard**: Securely protected by password authorization (`AMACCLIPA2026`), allowing administrators to review, approve, or reject pending item requests in real time.
-* **Unique QR Code Generation & Printing**: Approved items automatically generate a unique tracking reference (e.g., `AMA-OBJ-XXXXXX`) and render an official printable campus pass complete with AMA Lipa branding.
-* **Guard Scanner & In/Out Log Module**: Equipped with live camera scanning (via `html5-qrcode`) and manual token entry. Guards can verify clearance status and log items as **IN** or **OUT** with timestamps.
-* **Data Persistence**: Fully functional client-side storage utilizing `localStorage` to retain records across page refreshes.
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark shadow-sm" style="background-color: var(--ama-red);">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="#">
+                <img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=" id="amaLogoBase64" alt="AMA Logo" class="ama-logo-img shadow-sm" style="display:none;">
+                <!-- Fallback direct image representation using your uploaded badge -->
+                <img src="https://upload.wikimedia.org/wikipedia/en/thumb/e/ee/AMA_Computer_University_logo.png/220px-AMA_Computer_University_logo.png" alt="AMA Logo" class="ama-logo-img shadow-sm" id="navLogoImg">
+                <div>
+                    <span class="d-block fs-6 lh-sm">AMA Computer College</span>
+                    <span class="text-warning small lh-1">Lipa, Batangas - Object Pass System</span>
+                </div>
+            </a>
+            <span class="text-white-50 small d-none d-md-inline">Entry/Exit Clearance Portal</span>
+        </div>
+    </nav>
 
----
+    <!-- Main Container -->
+    <div class="container py-4">
 
-## 🛠️ Tech Stack
+        <!-- Hero Banner -->
+        <div class="hero-banner text-center">
+            <h1 class="display-6 fw-bold mb-2">AMA Campus Object Pass System</h1>
+            <p class="lead mb-0">Secure item registration, administrative approval, and guard verification portal.</p>
+        </div>
 
-* **Frontend**: HTML5, CSS3, JavaScript (Vanilla)
-* **UI Framework**: Bootstrap 5 (`v5.3.2`)
-* **Icons**: FontAwesome (`v6.4.0`)
-* **Libraries**: 
-  * `qrcode.js` (Dynamic QR generation)
-  * `html5-qrcode` (Live camera stream scanning)
+        <!-- Navigation Tabs -->
+        <ul class="nav nav-pills justify-content-center mb-4 gap-2" id="systemTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active rounded-pill px-4 shadow-sm" id="user-tab" data-bs-toggle="pill" data-bs-target="#userSection" type="button" role="tab">
+                    <i class="fa-solid fa-file-circle-plus me-2"></i>Request Form
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link rounded-pill px-4 shadow-sm" id="admin-tab" data-bs-toggle="pill" data-bs-target="#adminSection" type="button" role="tab">
+                    <i class="fa-solid fa-user-shield me-2"></i>Admin Dashboard
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link rounded-pill px-4 shadow-sm" id="guard-tab" data-bs-toggle="pill" data-bs-target="#guardSection" type="button" role="tab">
+                    <i class="fa-solid fa-qrcode me-2"></i>Guard Scanner & In/Out Log
+                </button>
+            </li>
+        </ul>
 
----
+        <!-- Tab Content -->
+        <div class="tab-content" id="systemTabsContent">
 
-## 🔒 Security & Default Credentials
+            <!-- 1. USER REQUEST SECTION -->
+            <div class="tab-pane fade show active" id="userSection" role="tabpanel">
+                <div class="row g-4">
+                    <div class="col-lg-6">
+                        <div class="card p-4">
+                            <h3 class="h5 mb-3 text-danger fw-bold"><i class="fa-solid fa-box-open me-2"></i>Submit Item Pass Request</h3>
+                            <form id="objectRequestForm">
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Full Name</label>
+                                    <input type="text" class="form-control" id="reqName" placeholder="e.g. John Ivan Perjes" required>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-semibold">Role</label>
+                                        <select class="form-select" id="reqRole" required>
+                                            <option value="Student">Student</option>
+                                            <option value="Faculty">Faculty</option>
+                                            <option value="Staff">Staff</option>
+                                            <option value="Visitor">Visitor</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-semibold">ID / Reference No.</label>
+                                        <input type="text" class="form-control" id="reqIdNo" placeholder="e.g. 21006050810" required>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-semibold">Item Name / Model</label>
+                                        <input type="text" class="form-control" id="reqItem" placeholder="e.g. Dell Laptop / Projector" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-semibold">Category</label>
+                                        <select class="form-select" id="reqCategory" required>
+                                            <option value="Electronics">Electronics / IT Equipment</option>
+                                            <option value="Instrument">Laboratory / Musical Instrument</option>
+                                            <option value="Tools">Tools / Equipment</option>
+                                            <option value="Others">Others</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Purpose of Bringing In/Out</label>
+                                    <textarea class="form-control" id="reqPurpose" rows="2" placeholder="e.g. For Computer Engineering Capstone Project" required></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-ama w-100 py-2 fw-bold">
+                                    <i class="fa-solid fa-paper-plane me-2"></i>Submit Request
+                                </button>
+                            </form>
+                        </div>
+                    </div>
 
-* **Admin Password**: `AMACCLIPA2026`
+                    <div class="col-lg-6">
+                        <div class="card p-4 h-100">
+                            <h3 class="h5 mb-3 text-dark fw-bold"><i class="fa-solid fa-clipboard-list me-2"></i>My Requests & QR Status</h3>
+                            <div class="table-responsive" style="max-height: 420px; overflow-y: auto;">
+                                <table class="table table-hover align-middle small">
+                                    <thead class="table-light sticky-top">
+                                        <tr>
+                                            <th>Ref #</th>
+                                            <th>Item</th>
+                                            <th>Status</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="userRequestsTableBody">
+                                        <!-- Dynamic rows -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
----
+            <!-- 2. ADMIN APPROVAL SECTION -->
+            <div class="tab-pane fade" id="adminSection" role="tabpanel">
+                <div class="card p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h3 class="h5 text-danger fw-bold mb-0"><i class="fa-solid fa-shield-halved me-2"></i>Admin Approval Management</h3>
+                        <span class="badge bg-secondary" id="adminAuthBadge">Locked</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Token / Ref</th>
+                                    <th>Requester</th>
+                                    <th>Item & Category</th>
+                                    <th>Purpose</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminRequestsTableBody">
+                                <!-- Dynamic admin rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
 
-## 📦 Installation & Usage
+            <!-- 3. GUARD SCANNER SECTION -->
+            <div class="tab-pane fade" id="guardSection" role="tabpanel">
+                <div class="row g-4">
+                    <div class="col-lg-6">
+                        <div class="card p-4">
+                            <h3 class="h5 mb-3 text-danger fw-bold"><i class="fa-solid fa-camera me-2"></i>QR Code Camera Scanner</h3>
+                            <div id="reader" style="width: 100%; border-radius: 0.5rem; overflow: hidden;"></div>
+                            <div class="mt-3">
+                                <label class="form-label fw-semibold">Or Enter Token Manually:</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="manualTokenInput" placeholder="AMA-OBJ-XXXXXX">
+                                    <button class="btn btn-dark" type="button" id="verifyManualBtn">Verify</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-Since this is a **self-contained single-file application**, no complex backend setup or package installation is required!
+                    <div class="col-lg-6">
+                        <div class="card p-4 h-100">
+                            <h3 class="h5 mb-3 text-dark fw-bold"><i class="fa-solid fa-circle-info me-2"></i>Verification & In/Out Log</h3>
+                            <div id="scanResultContainer" class="p-3 border rounded bg-light text-center my-auto">
+                                <i class="fa-solid fa-qrcode fa-3x text-muted mb-3"></i>
+                                <p class="text-muted mb-0">Scan a QR code or enter token to inspect clearance approval and log item IN or OUT.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-1. Download or clone this repository.
-2. Save the file as `index.html`.
-3. Open `index.html` in any modern web browser (Chrome, Firefox, Edge, Safari).
+        </div>
+    </div>
+
+    <!-- QR Modal with Printable Pass -->
+    <div class="modal fade" id="qrModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content p-4 text-center">
+                <div class="modal-header border-0 no-print">
+                    <h5 class="modal-title w-100 fw-bold text-danger">AMA Campus Object Pass</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="printableArea">
+                    <div class="border border-2 border-danger rounded p-3 bg-white">
+                        <div class="d-flex align-items-center justify-content-center gap-2 mb-2">
+                            <img src="https://upload.wikimedia.org/wikipedia/en/thumb/e/ee/AMA_Computer_University_logo.png/220px-AMA_Computer_University_logo.png" alt="AMA Logo" id="modalLogoImg" style="width: 38px; height: 38px; object-fit: contain;">
+                            <div class="text-start">
+                                <h6 class="fw-bold text-danger mb-0" style="font-size: 0.95rem;">AMA COMPUTER COLLEGE</h6>
+                                <small class="text-muted" style="font-size: 0.75rem;">Lipa, Batangas Campus</small>
+                            </div>
+                        </div>
+                        <hr class="my-2">
+                        <p class="text-dark fw-bold small mb-2">OFFICIAL APPROVED OBJECT PASS</p>
+                        <div id="qrcodeDisplay" class="d-flex justify-content-center mb-3"></div>
+                        <h5 class="fw-bold text-danger mb-1" id="modalTokenText"></h5>
+                        <p class="fw-semibold text-dark mb-1 small" id="modalItemText"></p>
+                        <p class="small text-muted mb-0" id="modalOwnerText"></p>
+                        <p class="small text-muted mb-0" id="modalPurposeText"></p>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 justify-content-center no-print">
+                    <button type="button" class="btn btn-ama px-4" onclick="window.print()">
+                        <i class="fa-solid fa-print me-2"></i>Print / Save Pass
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Password Modal -->
+    <div class="modal fade" id="adminPasswordModal" data-bs-backdrop="static" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content p-4 text-center">
+                <h5 class="fw-bold text-danger mb-3"><i class="fa-solid fa-lock me-2"></i>Admin Login</h5>
+                <p class="small text-muted mb-3">Please enter the administrator password (`AMACCLIPA2026`) to access approvals.</p>
+                <input type="password" class="form-control mb-3 text-center" id="adminPasswordInput" placeholder="Enter Password">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-ama fw-bold" id="submitAdminPassword">Login</button>
+                    <button class="btn btn-outline-secondary btn-sm" id="cancelAdminLogin">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // Use user's exact uploaded Lipa campus logo source across images
+        const lipaLogoUrl = "31db0905-ebbd-4a1b-9b7b-5ec7757c17f0.jpg";
+        document.getElementById('navLogoImg').src = lipaLogoUrl;
+        document.getElementById('modalLogoImg').src = lipaLogoUrl;
+
+        // Storage initialization
+        let requests = JSON.parse(localStorage.getItem('ama_requests')) || [];
+        let isAdminAuthenticated = false;
+
+        function saveRequests() {
+            localStorage.setItem('ama_requests', JSON.stringify(requests));
+            renderUserRequests();
+            renderAdminRequests();
+        }
+
+        // Handle Request Submission with Unique Object Token
+        document.getElementById('objectRequestForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const newReq = {
+                id: 'AMA-OBJ-' + Math.floor(100000 + Math.random() * 900000),
+                name: document.getElementById('reqName').value,
+                role: document.getElementById('reqRole').value,
+                idNo: document.getElementById('reqIdNo').value,
+                item: document.getElementById('reqItem').value,
+                category: document.getElementById('reqCategory').value,
+                purpose: document.getElementById('reqPurpose').value,
+                status: 'Pending',
+                movementLogs: [],
+                date: new Date().toLocaleString()
+            };
+
+            requests.unshift(newReq);
+            saveRequests();
+            this.reset();
+            alert('Request submitted successfully! Unique Tracking Ref: ' + newReq.id);
+        });
+
+        // Render User Table
+        function renderUserRequests() {
+            const tbody = document.getElementById('userRequestsTableBody');
+            tbody.innerHTML = '';
+            if (requests.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted py-3">No requests submitted yet.</td></tr>`;
+                return;
+            }
+
+            requests.forEach(req => {
+                let badgeClass = 'badge-status-pending';
+                if (req.status === 'Approved') badgeClass = 'badge-status-approved';
+                if (req.status === 'Rejected') badgeClass = 'badge-status-rejected';
+
+                let actionBtn = `<span class="text-muted small">Awaiting</span>`;
+                if (req.status === 'Approved') {
+                    actionBtn = `<button class="btn btn-sm btn-outline-danger" onclick="showQRCode('${req.id}')"><i class="fa-solid fa-qrcode me-1"></i>View/Print QR</button>`;
+                } else if (req.status === 'Rejected') {
+                    actionBtn = `<span class="text-danger small fw-semibold">Declined</span>`;
+                }
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${req.id}</strong></td>
+                        <td>${req.item}</td>
+                        <td><span class="badge ${badgeClass}">${req.status}</span></td>
+                        <td>${actionBtn}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Render Admin Table
+        function renderAdminRequests() {
+            const tbody = document.getElementById('adminRequestsTableBody');
+            tbody.innerHTML = '';
+            if (requests.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">No pending object requests.</td></tr>`;
+                return;
+            }
+
+            requests.forEach(req => {
+                let badgeClass = 'badge-status-pending';
+                if (req.status === 'Approved') badgeClass = 'badge-status-approved';
+                if (req.status === 'Rejected') badgeClass = 'badge-status-rejected';
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${req.id}</strong></td>
+                        <td>${req.name}<br><small class="text-muted">${req.role} (${req.idNo})</small></td>
+                        <td>${req.item}<br><span class="badge bg-light text-dark border">${req.category}</span></td>
+                        <td>${req.purpose}</td>
+                        <td><span class="badge ${badgeClass}">${req.status}</span></td>
+                        <td>
+                            ${req.status === 'Pending' ? `
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-success" onclick="updateStatus('${req.id}', 'Approved')"><i class="fa-solid fa-check"></i></button>
+                                    <button class="btn btn-danger" onclick="updateStatus('${req.id}', 'Rejected')"><i class="fa-solid fa-xmark"></i></button>
+                                </div>
+                            ` : `<button class="btn btn-sm btn-outline-secondary" onclick="updateStatus('${req.id}', 'Pending')">Reset</button>`}
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Update Status
+        window.updateStatus = function(id, status) {
+            const req = requests.find(r => r.id === id);
+            if (req) {
+                req.status = status;
+                saveRequests();
+            }
+        };
+
+        // QR Code Modal View & Print
+        window.showQRCode = function(id) {
+            const req = requests.find(r => r.id === id);
+            if (!req) return;
+
+            document.getElementById('qrcodeDisplay').innerHTML = '';
+            new QRCode(document.getElementById('qrcodeDisplay'), {
+                text: JSON.stringify({ token: req.id, item: req.item, owner: req.name, status: req.status }),
+                width: 150,
+                height: 150
+            });
+
+            document.getElementById('modalTokenText').innerText = `Ref: ${req.id}`;
+            document.getElementById('modalItemText').innerText = `Item: ${req.item} (${req.category})`;
+            document.getElementById('modalOwnerText').innerText = `Owner: ${req.name} (${req.role} - ${req.idNo})`;
+            document.getElementById('modalPurposeText').innerText = `Purpose: ${req.purpose}`;
+
+            const modal = new bootstrap.Modal(document.getElementById('qrModal'));
+            modal.show();
+        };
+
+        // Admin Security Tab Interception
+        const adminTabButton = document.getElementById('admin-tab');
+        const adminPasswordModal = new bootstrap.Modal(document.getElementById('adminPasswordModal'));
+
+        adminTabButton.addEventListener('click', function(e) {
+            if (!isAdminAuthenticated) {
+                e.preventDefault();
+                adminPasswordModal.show();
+            }
+        });
+
+        document.getElementById('submitAdminPassword').addEventListener('click', function() {
+            const pass = document.getElementById('adminPasswordInput').value;
+            if (pass === 'AMACCLIPA2026') {
+                isAdminAuthenticated = true;
+                document.getElementById('adminAuthBadge').innerText = 'Unlocked';
+                document.getElementById('adminAuthBadge').className = 'badge bg-success';
+                adminPasswordModal.hide();
+                document.getElementById('adminPasswordInput').value = '';
+                const tab = new bootstrap.Tab(adminTabButton);
+                tab.show();
+            } else {
+                alert('Incorrect password! Access denied.');
+                document.getElementById('adminPasswordInput').value = '';
+            }
+        });
+
+        document.getElementById('cancelAdminLogin').addEventListener('click', function() {
+            adminPasswordModal.hide();
+            const userTab = new bootstrap.Tab(document.getElementById('user-tab'));
+            userTab.show();
+        });
+
+        // Guard Scanner Module with In/Out Logging
+        function verifyTokenString(tokenText) {
+            let token = tokenText.trim();
+            try {
+                const parsed = JSON.parse(tokenText);
+                if (parsed.token) token = parsed.token;
+            } catch (e) {}
+
+            const req = requests.find(r => r.id === token);
+            const container = document.getElementById('scanResultContainer');
+
+            if (!req) {
+                container.innerHTML = `
+                    <div class="alert alert-danger mb-0">
+                        <i class="fa-solid fa-triangle-exclamation fa-2x mb-2"></i>
+                        <h5 class="fw-bold">Invalid Token</h5>
+                        <p class="mb-0 small">No matching record found for token: <strong>${token}</strong></p>
+                    </div>
+                `;
+                return;
+            }
+
+            let badgeHtml = '';
+            if (req.status === 'Approved') {
+                badgeHtml = `<span class="badge bg-success fs-6 px-3 py-2">APPROVED CLEARANCE</span>`;
+            } else if (req.status === 'Pending') {
+                badgeHtml = `<span class="badge bg-warning text-dark fs-6 px-3 py-2">PENDING APPROVAL</span>`;
+            } else {
+                badgeHtml = `<span class="badge bg-danger fs-6 px-3 py-2">REJECTED / DENIED</span>`;
+            }
+
+            let logsHtml = '';
+            if (req.movementLogs && req.movementLogs.length > 0) {
+                logsHtml = `<div class="mt-2 pt-2 border-top"><p class="fw-semibold mb-1 small">Recent Activity:</p><ul class="list-unstyled small text-muted mb-0" style="max-height:80px; overflow-y:auto;">`;
+                req.movementLogs.slice(-3).reverse().forEach(log => {
+                    let logBadge = log.type === 'IN' ? 'bg-success' : 'bg-primary';
+                    logsHtml += `<li><span class="badge ${logBadge} me-1">${log.type}</span> ${log.time}</li>`;
+                });
+                logsHtml += `</ul></div>`;
+            }
+
+            let actionControls = '';
+            if (req.status === 'Approved') {
+                actionControls = `
+                    <div class="mt-3 pt-3 border-top text-center">
+                        <p class="fw-semibold small mb-2">Record Campus Movement:</p>
+                        <div class="btn-group w-100" role="group">
+                            <button class="btn btn-outline-success fw-bold" onclick="logMovement('${req.id}', 'IN')"><i class="fa-solid fa-arrow-right-to-bracket me-1"></i> Log IN</button>
+                            <button class="btn btn-outline-primary fw-bold" onclick="logMovement('${req.id}', 'OUT')"><i class="fa-solid fa-arrow-right-from-bracket me-1"></i> Log OUT</button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = `
+                <div class="card border ${req.status === 'Approved' ? 'border-success' : 'border-danger'} p-3 text-start bg-white">
+                    <div class="text-center mb-3">${badgeHtml}</div>
+                    <ul class="list-unstyled small mb-2">
+                        <li><strong>Reference ID:</strong> ${req.id}</li>
+                        <li><strong>Owner:</strong> ${req.name} (${req.role} - ${req.idNo})</li>
+                        <li><strong>Item:</strong> ${req.item} (${req.category})</li>
+                        <li><strong>Purpose:</strong> ${req.purpose}</li>
+                    </ul>
+                    ${logsHtml}
+                    ${actionControls}
+                </div>
+            `;
+        }
+
+        window.logMovement = function(id, type) {
+            const req = requests.find(r => r.id === id);
+            if (req) {
+                if (!req.movementLogs) req.movementLogs = [];
+                const timestamp = new Date().toLocaleString();
+                req.movementLogs.push({ type: type, time: timestamp });
+                saveRequests();
+                alert(`Successfully logged item ${type} at ${timestamp}`);
+                verifyTokenString(id);
+            }
+        };
+
+        document.getElementById('verifyManualBtn').addEventListener('click', function() {
+            const val = document.getElementById('manualTokenInput').value;
+            if (val) verifyTokenString(val);
+        });
+
+        // Initialize Camera Scanner
+        let html5QrCode;
+        document.getElementById('guard-tab').addEventListener('shown.bs.tab', function() {
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("reader");
+                html5QrCode.start(
+                    { facingMode: "environment" },
+                    { fps: 10, qrbox: { width: 250, height: 250 } },
+                    (decodedText) => {
+                        verifyTokenString(decodedText);
+                    },
+                    (errorMessage) => {}
+                ).catch(err => {
+                    console.warn("Camera access unavailable or denied.", err);
+                });
+            }
+        });
+
+        // Initial Load
+        renderUserRequests();
+        renderAdminRequests();
+    </script>
+</body>
+</html>
